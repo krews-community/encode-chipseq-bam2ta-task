@@ -5,8 +5,9 @@ RUN apt-get update && apt-get install -y \
     liblzma-dev \
     libbz2-dev \
     zlib1g-dev \
-    python \
     libstdc++ \
+    python \
+    openssl \
     bash \
     git && \
     wget https://github.com/biod/sambamba/releases/download/v0.6.8/sambamba-0.6.8-linux-static.gz && \

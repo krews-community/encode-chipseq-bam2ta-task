@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker stop chipseq-base
+docker stop chipseq-bam2ta-base

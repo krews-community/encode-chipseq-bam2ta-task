@@ -22,16 +22,16 @@ fun CmdRunner.bam2ta(bamFile:Path,regex_grep_v_ta:String,disable_tn5_shift:Boole
          ta = bam2ta_se(bamFile, regex_grep_v_ta,
                  outDir,outputPrefix)
     }
-    if(subSample!==0){
+    if(subSample > 0){
 
         log.info { "subsampling tagalign" }
         if(pairedEnd)
         {
              subsampled_ta = subsample_ta_pe(
-                    ta, subSample,mito_chr_name, false, false, outDir)
+                    ta, subSample,mito_chr_name, false, false, outDir,outputPrefix)
         }else {
              subsampled_ta = subsample_ta_se(
-                    ta, subSample,mito_chr_name, false, outDir)
+                    ta, subSample,mito_chr_name, false, outDir,outputPrefix)
         }
         tmpFiles.add(ta)
     }else {
@@ -49,7 +49,7 @@ fun CmdRunner.bam2ta(bamFile:Path,regex_grep_v_ta:String,disable_tn5_shift:Boole
 }
 
 fun CmdRunner.bam2ta_pe(bamFile:Path,regex_grep_v_ta:String,parallelism:Int, outDir:Path,outputPrefix:String):String {
-    val prefix = outDir.resolve(strip_ext_bam(bamFile.fileName.toString()))
+    val prefix = outDir.resolve(outputPrefix)
 
     val ta = "${prefix}.tagAlign.gz"
 
@@ -66,7 +66,7 @@ fun CmdRunner.bam2ta_pe(bamFile:Path,regex_grep_v_ta:String,parallelism:Int, out
 
     var cmd2 = "zcat -f ${bedpe} | "
     cmd2 += "awk \'BEGIN{{OFS='\\t'}}"
-    cmd2 += "{{printf \"%s\\t%s\\t%s\\tN\\t1000\\t%s\\%s\\t%s\\t%s\\tN\\t1000\\t%s\\n\","
+    cmd2 += "{{printf \"%s\\t%s\\t%s\\tN\\t1000\\t%s\\t%s\\t%s\\t%s\\tN\\t1000\\t%s\\n\","
     cmd2 += "$1,$2,$3,$9,$4,$5,$6,$10}}\' | "
     if(regex_grep_v_ta!==null)
     {
@@ -79,7 +79,7 @@ fun CmdRunner.bam2ta_pe(bamFile:Path,regex_grep_v_ta:String,parallelism:Int, out
 }
 fun CmdRunner.bam2ta_se(bamFile:Path,regex_grep_v_ta:String, outDir:Path,outputPrefix:String):String {
 
-    val prefix = outDir.resolve(strip_ext_bam(bamFile.fileName.toString()))
+    val prefix = outDir.resolve(outputPrefix)
     val ta = "${prefix}.tagAlign.gz"
     var cmd = "bedtools bamtobed -i ${bamFile} | "
     cmd += "awk \'BEGIN{{OFS='\\t'}}"
@@ -106,7 +106,7 @@ fun CmdRunner.rm_f(tmpFiles: List<String>)
     this.run(cmd)
 }
 fun CmdRunner.tn5_shift_ta(ta:String,outDir: Path,outputPrefix: String):String{
-    val prefix = outDir.resolve(strip_ext_ta(ta))
+    val prefix = outDir.resolve(outputPrefix)
     val shifted_ta = "${prefix}.tn5.tagAlign.gz"
     var cmd = "zcat -f ${ta} | "
     cmd += "awk \'BEGIN {{OFS = '\\t'}} {{ if ($6 == \"+\") {{$2 = $2 + 4}} else if ($6 == \"-\") {{$3 = $3 - 5}} print $0}}\' | "
@@ -115,8 +115,8 @@ fun CmdRunner.tn5_shift_ta(ta:String,outDir: Path,outputPrefix: String):String{
     return shifted_ta
 }
 
-fun CmdRunner.subsample_ta_pe(ta:String, subsample:Int,mito_chr_name:String, non_mito:Boolean,r1_only:Boolean, outDir:Path):String {
-    val prefix = outDir.resolve(strip_ext_ta(ta))
+fun CmdRunner.subsample_ta_pe(ta:String, subsample:Int,mito_chr_name:String, non_mito:Boolean,r1_only:Boolean, outDir:Path,outputPrefix:String):String {
+    val prefix = outDir.resolve(outputPrefix)
     var nm:String
     var s:String
     var r:String
@@ -136,7 +136,7 @@ fun CmdRunner.subsample_ta_pe(ta:String, subsample:Int,mito_chr_name:String, non
     }
     if(subsample>0)
     {
-        s = human_readable_number(subsample)
+        s = human_readable_number(subsample)+"."
     } else {
         s=""
     }
@@ -145,7 +145,8 @@ fun CmdRunner.subsample_ta_pe(ta:String, subsample:Int,mito_chr_name:String, non
     var cmd = "bash -c \"zcat -f ${ta} |"
     if(non_mito){
         //# cmd += 'awk \'{{if ($1!="'+mito_chr_name+'") print $0}}\' | '
-        cmd +="grep -v \'^\'${mito_chr_name}\'\' | "
+      //  cmd +="grep -v \'^\'${mito_chr_name}\'\' | "
+        cmd += "grep -v \'^${mito_chr_name}\\b\' | "
     }
     cmd += "sed \'N;s/\\n/\\t/\'"
     if(subsample>0){
@@ -159,7 +160,6 @@ fun CmdRunner.subsample_ta_pe(ta:String, subsample:Int,mito_chr_name:String, non
     var cmd1 = "cat ${ta_tmp} | "
     cmd1 += "awk \'BEGIN{{OFS'\\t'}} "
     if(r1_only){
-        //    cmd2 += "{{printf \"%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t%s\\n\","
         cmd1 += "{{printf \"%s\\t%s\\t%s\\t%s\\t%s\\t%s\\n\","
         cmd1 += "$1,$2,$3,$4,$5,$6}}\' | "
     }
@@ -174,8 +174,8 @@ fun CmdRunner.subsample_ta_pe(ta:String, subsample:Int,mito_chr_name:String, non
     rm_f(listOf(ta_tmp))
     return ta_subsampled
 }
-fun CmdRunner.subsample_ta_se(ta:String, subsample:Int,mito_chr_name:String, non_mito:Boolean, outDir:Path):String{
-    val prefix = outDir.resolve(strip_ext_ta(ta))
+fun CmdRunner.subsample_ta_se(ta:String, subsample:Int,mito_chr_name:String, non_mito:Boolean, outDir:Path,outputPrefix:String):String{
+    val prefix = outDir.resolve(outputPrefix)
     var nm:String
     var s:String
     if(non_mito)
@@ -187,7 +187,7 @@ fun CmdRunner.subsample_ta_se(ta:String, subsample:Int,mito_chr_name:String, non
     }
     if(subsample>0)
     {
-        s = human_readable_number(subsample)
+        s = human_readable_number(subsample)+"."
     } else {
         s=""
     }
@@ -195,8 +195,8 @@ fun CmdRunner.subsample_ta_se(ta:String, subsample:Int,mito_chr_name:String, non
     val ta_subsampled = "${prefix}.${nm}${s}tagAlign.gz"
     var cmd = "bash -c \"zcat -f ${ta} |"
     if(non_mito){
-        //# cmd += 'awk \'{{if ($1!="'+mito_chr_name+'") print $0}}\' | '
-        cmd +="grep -v \'^\'${mito_chr_name}\'\' | "
+
+        cmd += "grep -v \'^${mito_chr_name}\\b\' | "
     }
 
     if(subsample>0){
@@ -204,7 +204,7 @@ fun CmdRunner.subsample_ta_se(ta:String, subsample:Int,mito_chr_name:String, non
         cmd += "gzip -nc > ${ta_subsampled}\""
     }
     else {
-        cmd += "gzip -nc > ${ta_subsampled}}"
+        cmd += "gzip -nc > ${ta_subsampled}\""
     }
 
     this.run(cmd)

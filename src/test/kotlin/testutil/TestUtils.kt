@@ -7,8 +7,8 @@ import util.*
 val cmdRunner = TestCmdRunner()
 
 class TestCmdRunner : CmdRunner {
-    override fun run(cmd: String) = exec("docker", "exec", "chipseq-base", "sh", "-c", cmd)
-    override fun runCommand(cmd: String):String? = getCommandOutput("docker", "exec", "chipseq-base", "sh", "-c", cmd)
+    override fun run(cmd: String) = exec("docker", "exec", "chipseq-bam2ta-base", "sh", "-c", cmd)
+    override fun runCommand(cmd: String):String? = getCommandOutput("docker", "exec", "chipseq-bam2ta-base", "sh", "-c", cmd)
 
 }
 
@@ -39,6 +39,6 @@ fun cleanupTest() {
     }
 }
 
-/*fun CopyOpt() {
+fun CopyOpt() {
     copyDirectory(testOutputDir, testOutputResourcesDir)
-}*/
+}

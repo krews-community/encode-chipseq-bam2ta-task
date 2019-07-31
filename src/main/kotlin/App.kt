@@ -12,9 +12,9 @@ fun main(args: Array<String>) = Cli().main(args)
 class Cli : CliktCommand() {
     private val bamFile: Path by option("-bam", help = "path for raw BAM file.")
         .path().required()
-    private val disable_tn5_shift: Boolean by option("--disable-tn5-shift", help = "Disable TN5 shifting for DNase-Seq.").flag()
-    private val mito_chr_name: String by option("--mito-chr-name", help = "Mito chromosome name.").default("chrM")
-    private val regex_grep_v_ta: String by option("--regex-grep-v-ta", help = "Perl-style regular expression pattern \\\n" +
+    private val disable_tn5_shift: Boolean by option("-disable-tn5-shift", help = "Disable TN5 shifting for DNase-Seq.").flag(default = true)
+    private val mito_chr_name: String by option("-mito-chr-name", help = "Mito chromosome name.").default("chrM")
+    private val regex_grep_v_ta: String by option("-regex-grep-v-ta", help = "Perl-style regular expression pattern \\\n" +
             "    to remove matching reads from TAGALIGN.").default("chrM")
     private val subSample: Int by option("-subsample", help = "Subsample TAGALIGN. \\\n" +
             "    This affects all downstream analysis.").int().default(0)
