@@ -19,6 +19,8 @@ class Cli : CliktCommand() {
     private val subSample: Int by option("-subsample", help = "Subsample TAGALIGN. \\\n" +
             "    This affects all downstream analysis.").int().default(0)
     private val pairedEnd: Boolean by option("-pairedEnd", help = "Paired-end BAM.").flag()
+    private val XcorTa: Boolean by option("-xcorta", help = "Paired-end BAM.").flag()
+
     private val parallelism: Int by option("-parallelism", help = "Number of threads to parallelize.").int().default(1)
     private val outputPrefix: String by option("-outputPrefix", help = "output file name prefix; defaults to 'output'").default("output")
     private val outDir by option("-outputDir", help = "path to output Directory")
@@ -27,7 +29,7 @@ class Cli : CliktCommand() {
     override fun run() {
         val cmdRunner = DefaultCmdRunner()
 
-        cmdRunner.runTask(bamFile,regex_grep_v_ta,disable_tn5_shift,mito_chr_name,subSample,outputPrefix,pairedEnd,parallelism, outDir)
+        cmdRunner.runTask(bamFile,regex_grep_v_ta,disable_tn5_shift,mito_chr_name,subSample,outputPrefix,pairedEnd,XcorTa,parallelism, outDir)
     }
 }
 
@@ -37,8 +39,8 @@ class Cli : CliktCommand() {
  * @param bwaInputs bwa Input
  * @param outDir Output Path
  */
-fun CmdRunner.runTask(bamFile:Path,regex_grep_v_ta:String,disable_tn5_shift:Boolean,mito_chr_name:String,subSample:Int,outputPrefix:String,pairedEnd:Boolean,parallelism:Int, outDir:Path) {
+fun CmdRunner.runTask(bamFile:Path,regex_grep_v_ta:String,disable_tn5_shift:Boolean,mito_chr_name:String,subSample:Int,outputPrefix:String,pairedEnd:Boolean,XcorTa:Boolean,parallelism:Int, outDir:Path) {
 
-    bam2ta(bamFile,regex_grep_v_ta,disable_tn5_shift,mito_chr_name,subSample,outputPrefix,pairedEnd,parallelism, outDir)
+    bam2ta(bamFile,regex_grep_v_ta,disable_tn5_shift,mito_chr_name,subSample,outputPrefix,XcorTa,pairedEnd,parallelism, outDir)
 
 }

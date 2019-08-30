@@ -8,20 +8,27 @@ import kotlin.math.max
 
 private val log = KotlinLogging.logger {}
 
-fun CmdRunner.bam2ta(bamFile:Path,regex_grep_v_ta:String,disable_tn5_shift:Boolean,mito_chr_name:String,subSample:Int,outputPrefix:String,pairedEnd:Boolean,parallelism:Int, outDir:Path) {
-    log.info { "Make output Diretory" }
+fun CmdRunner.bam2ta(bamFile:Path,regex_grep_v_ta:String,disable_tn5_shift:Boolean,mito_chr_name:String,subSample:Int,outputPrefix:String,XcorTa:Boolean,pairedEnd:Boolean,parallelism:Int, outDir:Path) {
+    log.info { "Make output Directory" }
     Files.createDirectories(outDir)
     var ta:String
     var subsampled_ta:String
     var tmpFiles = mutableListOf<String>() //Delete temp files at the end
-    if(pairedEnd)
+    if(XcorTa)
     {
-         ta = bam2ta_pe(bamFile, regex_grep_v_ta,
-                parallelism, outDir,outputPrefix)
-    }else {
-         ta = bam2ta_se(bamFile, regex_grep_v_ta,
-                 outDir,outputPrefix)
+        ta = bam2ta_se_ta(bamFile, regex_grep_v_ta,
+                outDir,outputPrefix)
+    } else {
+        if(pairedEnd)
+        {
+            ta = bam2ta_pe(bamFile, regex_grep_v_ta,
+                    parallelism, outDir,outputPrefix)
+        }else {
+            ta = bam2ta_se(bamFile, regex_grep_v_ta,
+                    outDir,outputPrefix)
+        }
     }
+
     if(subSample > 0){
 
         log.info { "subsampling tagalign" }
@@ -66,15 +73,39 @@ fun CmdRunner.bam2ta_pe(bamFile:Path,regex_grep_v_ta:String,parallelism:Int, out
 
     var cmd2 = "zcat -f ${bedpe} | "
     cmd2 += "awk \'BEGIN{{OFS='\\t'}}"
+    cmd2 += "{{ chrom=$1; beg=$2; end=$6;"
+    cmd2 += "if($2>$5){{beg=$5}} if($3>$6){{end=$3}}"
+
+    cmd2 += " printf \"%s\\t%s\\t%s\\n\","
+    cmd2 += "chrom,beg,end "
+    cmd2 +="}}\' - |  sort -k1,1 -k2,2n |"
+ /*   cmd2 += "awk \'BEGIN{{OFS='\\t'}}"
     cmd2 += "{{printf \"%s\\t%s\\t%s\\tN\\t1000\\t%s\\t%s\\t%s\\t%s\\tN\\t1000\\t%s\\n\","
-    cmd2 += "$1,$2,$3,$9,$4,$5,$6,$10}}\' | "
+    cmd2 += "$1,$2,$3,$9,$4,$5,$6,$10}}\' | "*/
     if(regex_grep_v_ta!==null)
     {
         cmd2+= "grep -P -v \'^${regex_grep_v_ta}\\b\' | "
     }
     cmd2 += "gzip -nc > ${ta}"
     this.run(cmd2)
-    rm_f(listOf(bedpe))
+   rm_f(listOf(bedpe))
+    return ta
+}
+fun CmdRunner.bam2ta_se_ta(bamFile:Path,regex_grep_v_ta:String, outDir:Path,outputPrefix:String):String {
+
+    val prefix = outDir.resolve(outputPrefix)
+    val ta = "${prefix}.tagAlign.gz"
+    var cmd = "bedtools bamtobed -i ${bamFile} | "
+    /*  cmd += " cut -f1-3 | "
+      cmd +="sort -k1,1 -k2,2n | "*/
+    cmd += "awk \'BEGIN{{OFS='\\t'}}"
+    cmd += "{{printf \"%s\\t%s\\t%s\\tN\\t1000\\t%s\\n\","
+    cmd += "$1,$2,$3,$6}}\' | "
+    if (regex_grep_v_ta !== null) {
+        cmd += "grep -P -v \'^${regex_grep_v_ta}\\b\' | "
+    }
+    cmd += "gzip -nc > ${ta}"
+    this.run(cmd)
     return ta
 }
 fun CmdRunner.bam2ta_se(bamFile:Path,regex_grep_v_ta:String, outDir:Path,outputPrefix:String):String {
@@ -82,9 +113,11 @@ fun CmdRunner.bam2ta_se(bamFile:Path,regex_grep_v_ta:String, outDir:Path,outputP
     val prefix = outDir.resolve(outputPrefix)
     val ta = "${prefix}.tagAlign.gz"
     var cmd = "bedtools bamtobed -i ${bamFile} | "
-    cmd += "awk \'BEGIN{{OFS='\\t'}}"
+   cmd += " cut -f1-3 | "
+    cmd +="sort -k1,1 -k2,2n | "
+ /*  cmd += "awk \'BEGIN{{OFS='\\t'}}"
     cmd += "{{printf \"%s\\t%s\\t%s\\tN\\t1000\\t%s\\n\","
-    cmd += "$1,$2,$3,$6}}\' | "
+    cmd += "$1,$2,$3,$6}}\' | "*/
     if (regex_grep_v_ta !== null) {
         cmd += "grep -P -v \'^${regex_grep_v_ta}\\b\' | "
     }
@@ -99,6 +132,7 @@ fun CmdRunner.sambamba_name_sort(bam:Path,nth:Int,output:Path):String{
     val cmd = "sambamba sort -n ${bam} -o ${nmsrt_bam} -t ${nth}"
     this.run(cmd)
     return nmsrt_bam
+
 }
 fun CmdRunner.rm_f(tmpFiles: List<String>)
 {
