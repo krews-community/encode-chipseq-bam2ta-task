@@ -5,7 +5,6 @@ RUN apt-get update && apt-get install -y \
     liblzma-dev \
     libbz2-dev \
     zlib1g-dev \
-    libstdc++ \
     python \
     openssl \
     bash \
